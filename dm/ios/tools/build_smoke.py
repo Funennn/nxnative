@@ -23,6 +23,7 @@ import game
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--output', required=True, type=Path, help='new scratch directory for inputs and build products')
+    parser.add_argument('--ios-min', default='18.0', choices=('18.0', '18.5', '26.0'), help='minimum iOS version to compile and link for')
     args = parser.parse_args()
     profile = game.load(os.environ.get('GAME') or os.environ.get('DM_GAME'))
     root = args.output.resolve()
@@ -84,11 +85,14 @@ def main():
         '-configuration', 'Release', '-destination', 'generic/platform=iOS',
         '-derivedDataPath', derived, '-jobs', '3',
         'CODE_SIGNING_ALLOWED=NO', 'CODE_SIGNING_REQUIRED=NO', 'CODE_SIGN_IDENTITY=',
+        f'IPHONEOS_DEPLOYMENT_TARGET={args.ios_min}',
         f'DM_XCODE_OUTPUT_ROOT={derived}', f'SYMROOT={derived}/Build/Products',
         f'OBJROOT={derived}/Build/Intermediates.noindex', 'build')
 
     app = derived / 'Build/Products/Release-iphoneos/DmIOS.app'
     info = plistlib.loads((app / 'Info.plist').read_bytes())
+    if info.get('MinimumOSVersion') != args.ios_min:
+        raise RuntimeError(f'Unexpected minimum iOS version: {info.get("MinimumOSVersion")}')
     executable = app / info['CFBundleExecutable']
     if not executable.is_file():
         raise RuntimeError(f'No linked executable: {executable}')

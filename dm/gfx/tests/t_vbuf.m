@@ -28,7 +28,7 @@ static id<MTL4RenderCommandEncoder> encoder(id<MTLRenderPipelineState> ps) {
     vbuf_prepare();
     ubd_land_compute();
     if (g_blit) { enc_b_end(g_blit); g_blit = nil; }
-    MTL4RenderPassDescriptor *d = [MTL4RenderPassDescriptor new];
+    MTL4RenderPassDescriptor *d = dm_render_descriptor();
     d.renderTargetWidth = d.renderTargetHeight = d.defaultRasterSampleCount = 1;
     id<MTL4RenderCommandEncoder> en = enc_r_begin(d); enc_r_pso(en, ps); return en;
 }

@@ -66,7 +66,7 @@ static void tf_draw(NvProg *pr,const p_draw *dw,const p_draw_idx *di) {
     uint64_t dst[4]={0};uint64_t job=tf_prepare(vs,0,0,(uint32_t)count,dw->prim==0?1:dw->prim==1?2:3,
                                               dw->first,dw->count,dw->base_instance,dst);if(!job)return;
     vbuf_prepare();if(g_blit){enc_b_end(g_blit);g_blit=nil;}
-    MTL4RenderPassDescriptor *rd=[MTL4RenderPassDescriptor new];rd.renderTargetWidth=rd.renderTargetHeight=rd.defaultRasterSampleCount=1;
+    MTL4RenderPassDescriptor *rd=dm_render_descriptor();rd.renderTargetWidth=rd.renderTargetHeight=rd.defaultRasterSampleCount=1;
     id<MTL4RenderCommandEncoder> en=enc_r_begin(rd);enc_r_pso(en,ps);bind_vbufs(en);vconv_bind(en,vs,1,dw,NULL);
     args_dirty_all();encode_args(en,vs,0,1);enc_r_vbuf(en,14,job);
     for(int b=0;b<4;b++)if(vs->tf_stride[b])enc_r_vbuf(en,TF_SLOT+b,dst[b]);
@@ -78,7 +78,7 @@ static void tf_geometry(NvShader *reader,uint64_t indices,uint64_t args,uint32_t
     if(!reader->tf_fn){RED_ONCE(104,"geometry feedback reader %s has no capture entry",reader->key);return;}
     id<MTLRenderPipelineState> ps=tf_pso(reader);if(!ps)return;
     uint64_t dst[4]={0};uint64_t job=tf_prepare(reader,args,indices,0,primitive,0,0,base_instance,dst);if(!job)return;
-    MTL4RenderPassDescriptor *rd=[MTL4RenderPassDescriptor new];rd.renderTargetWidth=rd.renderTargetHeight=rd.defaultRasterSampleCount=1;
+    MTL4RenderPassDescriptor *rd=dm_render_descriptor();rd.renderTargetWidth=rd.renderTargetHeight=rd.defaultRasterSampleCount=1;
     id<MTL4RenderCommandEncoder> en=enc_r_begin(rd);enc_r_pso(en,ps);args_dirty_all();encode_args(en,reader,0,1);enc_r_vbuf(en,14,job);
     for(int b=0;b<4;b++)if(reader->tf_stride[b])enc_r_vbuf(en,TF_SLOT+b,dst[b]);
     enc_r_draw_indirect(en,MTLPrimitiveTypePoint,job+16);enc_r_end(en);tf_note(reader);

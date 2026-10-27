@@ -614,6 +614,14 @@ The replay on Metal (`dm/gfx/nvn/nvn_mtl.m`) and the Vulkan and OpenGL layers. E
 
 ### Buffer copies through aliased Metal addresses
 
+The experimental iOS 18 backend has a separate compatibility path; see
+[iOS 18 port status](../ios18.md). Classic Metal encoder fences did not make
+distinct GPU mappings of shared physical pages coherent in `t_copy_alias`.
+`nvn_metal3.inc` uses a completed command-buffer boundary for aliases and declares
+indirect shader resources explicitly. This is a platform-limit fallback with
+unmeasured gameplay performance, validated only with synthetic GPU tests so far.
+No game is claimed tested on iOS 18 by this finding.
+
 - **Symptom:** a buffer copy, inline update or fill completes, but a following copy through another Metal buffer over the same allocation reads stale bytes.
 - **Cause:** Metal buffers over one allocation have distinct GPU addresses. Device visibility alone does not flush their alias caches. Sparse virtual pools also give the same physical bytes distinct guest addresses, so the copy encoder's guest-range dependency checks can miss a conflict entirely; barriers at encoder boundaries cannot order copies within that encoder.
 - **Fix:** `blit_buf` marks encoders containing buffer copies, updates or fills; their start, intra-encoder and end barriers include `MTL4VisibilityOptionResourceAlias`. Operations touching a sparse virtual range (`nvn_sparse_alias`) receive conservative barriers against prior and subsequent operations, since a mapped run can span unrelated physical allocations. Ordinary buffers retain range-based batching. Texture-only and helper encoders keep their existing visibility options.

@@ -1,0 +1,58 @@
+name: iOS 18 compatibility (experimental)
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [ios18-metal3]
+  pull_request:
+    paths: ['dm/gfx/**', 'dm/ios/**', '.github/workflows/ios18.yml']
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ios18-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    name: Compile and link for iOS ${{ matrix.minimum }}
+    runs-on: macos-26
+    timeout-minutes: 40
+    strategy:
+      fail-fast: false
+      matrix:
+        minimum: ['18.0', '18.5']
+    env:
+      GAME: 010015100B514000
+      DM_IOS_MIN: ${{ matrix.minimum }}
+    defaults:
+      run:
+        shell: bash
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Record the Apple toolchain
+        run: |
+          mkdir -p logs
+          xcodebuild -version | tee logs/xcode.log
+          xcrun --sdk iphoneos --show-sdk-version | tee logs/iphone-sdk.log
+      - name: Install XcodeGen
+        run: command -v xcodegen || brew install xcodegen
+      - name: Compile the iPhone host sources
+        run: |
+          set -o pipefail
+          python3 dm/ios/tools/compile_check.py 2>&1 | tee logs/compile.log
+      - name: Link the unsigned production project using synthetic inputs
+        run: |
+          set -o pipefail
+          python3 dm/ios/tools/build_smoke.py --ios-min "$DM_IOS_MIN" --output "$RUNNER_TEMP/ios18-smoke" 2>&1 | tee logs/link.log
+      # The synthetic app contains no game code. Upload diagnostics only: this
+      # checks building/linking, not gameplay, and must not be distributed as a game IPA.
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        if: always()
+        with:
+          name: ios-${{ matrix.minimum }}-build-logs
+          path: logs
+          retention-days: 7

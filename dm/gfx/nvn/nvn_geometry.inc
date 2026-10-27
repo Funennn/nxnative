@@ -114,7 +114,7 @@ static void vertex_dump(NvShader *vs, const p_draw *dw, const p_draw_idx *di) {
     memcpy((uint8_t *)output.contents + offset, info, sizeof info);
     vbuf_prepare();
     if (g_blit) { enc_b_end(g_blit); g_blit = nil; }
-    MTL4RenderPassDescriptor *rd = [MTL4RenderPassDescriptor new]; rd.renderTargetWidth = rd.renderTargetHeight = rd.defaultRasterSampleCount = 1;
+    MTL4RenderPassDescriptor *rd = dm_render_descriptor(); rd.renderTargetWidth = rd.renderTargetHeight = rd.defaultRasterSampleCount = 1;
     id<MTL4RenderCommandEncoder> en = enc_r_begin(rd); enc_r_pso(en, ps); bind_vbufs(en);
     p_draw range = {.first = (int32_t)lo, .count = (int32_t)span, .instances = 1, .base_instance = (int32_t)(info[3] & UINT32_MAX)};
     vconv_bind(en, vs, 1, &range, NULL); args_dirty_all(); encode_args(en, vs, 0, 1); enc_r_vbuf(en, 13, gpu);
@@ -295,7 +295,7 @@ static void geo_draw(NvProg *pr, const p_draw *dw0, const p_draw_idx *di0) {
     memcpy(pjob, &pj, sizeof pj);
     vbuf_prepare();
     if (g_blit) { enc_b_end(g_blit); g_blit = nil; }
-    MTL4RenderPassDescriptor *rd = [MTL4RenderPassDescriptor new]; rd.renderTargetWidth = rd.renderTargetHeight = rd.defaultRasterSampleCount = 1;
+    MTL4RenderPassDescriptor *rd = dm_render_descriptor(); rd.renderTargetWidth = rd.renderTargetHeight = rd.defaultRasterSampleCount = 1;
     id<MTL4RenderCommandEncoder> re = enc_r_begin(rd); enc_r_pso(re, capture); bind_vbufs(re);
     p_draw vertex_range = {.first = (int32_t)first, .count = (int32_t)span, .instances = instances, .base_instance = (int32_t)first_instance};
     vconv_bind(re, vs, 1, &vertex_range, NULL);
